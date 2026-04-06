@@ -419,3 +419,74 @@ func TestDefaultPanicHandler(t *testing.T) {
 		t.Errorf("expected status 500, got %d", w.Code)
 	}
 }
+
+func TestApplyConfig(t *testing.T) {
+	engine := New(nil)
+
+	wantRead := 10 * time.Second
+	wantWrite := 20 * time.Second
+
+	engine.GET("/custom", func(req *Request, res *Response) error {
+		return res.String(200, "ok")
+	}).ApplyConfig(&EngineOption{
+		ReadTimeout:  wantRead,
+		WriteTimeout: wantWrite,
+	})
+
+	// Verify the engine-wide timeouts were updated.
+	if engine.readTimeout != wantRead {
+		t.Errorf("expected readTimeout %v, got %v", wantRead, engine.readTimeout)
+	}
+	if engine.writeTimeout != wantWrite {
+		t.Errorf("expected writeTimeout %v, got %v", wantWrite, engine.writeTimeout)
+	}
+
+	// Also verify the route still responds correctly.
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/custom", nil)
+	engine.ServeHTTP(w, r)
+
+	if w.Code != 200 {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestApplyConfig_UpdatesEngineFields(t *testing.T) {
+	engine := New(nil)
+
+	wantRead := 5 * time.Second
+	wantWrite := 8 * time.Second
+	wantIdle := 30 * time.Second
+	wantMaxHeader := 2048
+
+	engine.ApplyConfig(&EngineOption{
+		ReadTimeout:    wantRead,
+		WriteTimeout:   wantWrite,
+		IdleTimeout:    wantIdle,
+		MaxHeaderBytes: wantMaxHeader,
+	})
+
+	if engine.readTimeout != wantRead {
+		t.Errorf("expected readTimeout %v, got %v", wantRead, engine.readTimeout)
+	}
+	if engine.writeTimeout != wantWrite {
+		t.Errorf("expected writeTimeout %v, got %v", wantWrite, engine.writeTimeout)
+	}
+	if engine.idleTimeout != wantIdle {
+		t.Errorf("expected idleTimeout %v, got %v", wantIdle, engine.idleTimeout)
+	}
+	if engine.maxHeaderBytes != wantMaxHeader {
+		t.Errorf("expected maxHeaderBytes %d, got %d", wantMaxHeader, engine.maxHeaderBytes)
+	}
+}
+
+func TestApplyConfig_NilIsNoOp(t *testing.T) {
+	engine := New(nil)
+	before := engine.readTimeout
+
+	engine.ApplyConfig(nil)
+
+	if engine.readTimeout != before {
+		t.Errorf("expected readTimeout to remain %v after nil ApplyConfig, got %v", before, engine.readTimeout)
+	}
+}
