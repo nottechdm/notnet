@@ -189,10 +189,13 @@ func (e *Engine) HEAD(path string, handler HandlerFunc) *Engine {
 	return e
 }
 
-// ApplyConfig applies configuration options to the a particular route
+// ApplyConfig applies configuration options to the engine.
 //
-// It takes an EngineOption struct and updates the engine's configuration accordingly
-// Example usage: app.POST("/users", Handler).ApplyConfig(&notnet.EngineOption{ReadTimeout: 10 * time.Second})
+// It takes an EngineOption struct and updates engine-wide configuration accordingly.
+// Because route registration methods such as GET/POST/PUT return *Engine, chaining
+// ApplyConfig after registering a route still updates the shared engine, not only
+// the route that was just added.
+// Example usage: app.ApplyConfig(&notnet.EngineOption{ReadTimeout: 10 * time.Second})
 func (e *Engine) ApplyConfig(config *EngineOption) *Engine {
 	// Override defaults with options
 	if config != nil {
@@ -492,8 +495,10 @@ func (g *Group) wrapHandler(handler HandlerFunc) HandlerFunc {
 	}
 }
 
-// ApplyConfig applies configuration options to the engine from the group
-// Example usage: api.POST("/timeout", handler).ApplyConfig(&notnet.EngineOption{ReadTimeout: 10 * time.Second})
+// ApplyConfig applies configuration options to the underlying engine globally.
+// It does not apply configuration only to this group or to the most recently
+// registered route.
+// Example usage: api.ApplyConfig(&notnet.EngineOption{ReadTimeout: 10 * time.Second})
 func (g *Group) ApplyConfig(config *EngineOption) *Group {
 	g.engine.ApplyConfig(config)
 	return g
