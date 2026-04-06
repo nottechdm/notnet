@@ -11,6 +11,7 @@ import (
 type HandlerFunc func(*Request, *Response) error
 
 // Engine is the core NotNet application
+//
 // It implements http.Handler and manages routing, middleware, and error handling
 // It provides methods for defining routes, groups, and starting the server
 // It also allows users to set custom error handlers and panic handlers
@@ -43,6 +44,7 @@ type NotFoundHandlerFunc func(*Request, *Response)
 type PanicHandlerFunc func(*Request, *Response, interface{})
 
 // EngineOption defines options for creating a new Engine
+//
 // MaxHeaderBytes: maximum size of request headers (default 1MB)
 // ReadTimeout: maximum duration for reading the entire request (default 15s)
 // WriteTimeout: maximum duration before timing out writes of the response (default 15s)
@@ -64,6 +66,10 @@ type EngineOption struct {
 }
 
 // New creates a new NotNet engine
+//
+// It takes an optional EngineOption struct to configure the engine's settings and handlers
+// If no options are provided, it uses default settings for timeouts and error handlers
+// Example usage: app := notnet.New(&notnet.EngineOption{ReadTimeout: 10 * time.Second, ErrorFunc: customErrorHandler})
 func New(opts *EngineOption) *Engine {
 	e := &Engine{
 		router:         NewRouter(),
@@ -108,6 +114,7 @@ func New(opts *EngineOption) *Engine {
 }
 
 // Use adds global middleware to the engine
+//
 // Example usage: app.Use(notnet.Logger(), notnet.Recovery())
 func (e *Engine) Use(handlers ...HandlerFunc) *Engine {
 	e.middleware = append(e.middleware, handlers...)
@@ -115,6 +122,7 @@ func (e *Engine) Use(handlers ...HandlerFunc) *Engine {
 }
 
 // GET registers a GET route
+//
 // It takes a path and a handler function, and registers it with the router for the GET method
 // Example usage: app.GET("/ping", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "pong") })
 func (e *Engine) GET(path string, handler HandlerFunc) *Engine {
@@ -123,6 +131,7 @@ func (e *Engine) GET(path string, handler HandlerFunc) *Engine {
 }
 
 // POST registers a POST route
+//
 // It takes a path and a handler function, and registers it with the router for the POST method
 // Example usage: app.POST("/users", func(req *notnet.Request, res *notnet.Response) error { return res.String(201, "user created") })
 func (e *Engine) POST(path string, handler HandlerFunc) *Engine {
@@ -131,6 +140,7 @@ func (e *Engine) POST(path string, handler HandlerFunc) *Engine {
 }
 
 // PUT registers a PUT route
+//
 // It takes a path and a handler function, and registers it with the router for the PUT method
 // Example usage: app.PUT("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "user updated") })
 func (e *Engine) PUT(path string, handler HandlerFunc) *Engine {
@@ -139,6 +149,7 @@ func (e *Engine) PUT(path string, handler HandlerFunc) *Engine {
 }
 
 // DELETE registers a DELETE route
+//
 // It takes a path and a handler function, and registers it with the router for the DELETE method
 // Example usage: app.DELETE("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(204, "") })
 func (e *Engine) DELETE(path string, handler HandlerFunc) *Engine {
@@ -147,6 +158,7 @@ func (e *Engine) DELETE(path string, handler HandlerFunc) *Engine {
 }
 
 // PATCH registers a PATCH route
+//
 // It takes a path and a handler function, and registers it with the router for the PATCH method
 // Example usage: app.PATCH("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "user partially updated") })
 func (e *Engine) PATCH(path string, handler HandlerFunc) *Engine {
@@ -155,6 +167,7 @@ func (e *Engine) PATCH(path string, handler HandlerFunc) *Engine {
 }
 
 // OPTIONS registers an OPTIONS route
+//
 // It takes a path and a handler function, and registers it with the router for the OPTIONS method
 // Example usage: app.OPTIONS("/users", func(req *notnet.Request, res *notnet.Response) error { return res.String(204, "") })
 func (e *Engine) OPTIONS(path string, handler HandlerFunc) *Engine {
@@ -163,6 +176,7 @@ func (e *Engine) OPTIONS(path string, handler HandlerFunc) *Engine {
 }
 
 // HEAD registers a HEAD route
+//
 // It takes a path and a handler function, and registers it with the router for the HEAD method
 // Example usage: app.HEAD("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "") })
 func (e *Engine) HEAD(path string, handler HandlerFunc) *Engine {
@@ -170,7 +184,40 @@ func (e *Engine) HEAD(path string, handler HandlerFunc) *Engine {
 	return e
 }
 
+// ApplyConfig applies configuration options to the a particular route
+//
+// It takes an EngineOption struct and updates the engine's configuration accordingly
+// Example usage: app.POST("/users", Handler).ApplyConfig(&notnet.EngineOption{ReadTimeout: 10 * time.Second})
+func (e *Engine) ApplyConfig(config *EngineOption) *Engine {
+	// Override defaults with options
+	if config != nil {
+		if config.MaxHeaderBytes > 0 {
+			e.maxHeaderBytes = config.MaxHeaderBytes
+		}
+		if config.ReadTimeout > 0 {
+			e.readTimeout = config.ReadTimeout
+		}
+		if config.WriteTimeout > 0 {
+			e.writeTimeout = config.WriteTimeout
+		}
+		if config.IdleTimeout > 0 {
+			e.idleTimeout = config.IdleTimeout
+		}
+		if config.ErrorFunc != nil {
+			e.errorFunc = *config.ErrorFunc
+		}
+		if config.NotFoundFunc != nil {
+			e.notFoundFunc = *config.NotFoundFunc
+		}
+		if config.PanicFunc != nil {
+			e.panicFunc = *config.PanicFunc
+		}
+	}
+	return e
+}
+
 // Group creates a route group with optional middleware
+//
 // It takes a path prefix and optional middleware, and returns a Group object for defining routes within that group
 // Example usage: api := app.Group("/api/v1", notnet.AuthRequired()); api.GET("/status", func(req *notnet.Request, res *notnet.Response) error { return res.JSON(200, map[string]string{"status": "ok"}) })
 func (e *Engine) Group(path string, handlers ...HandlerFunc) *Group {
@@ -182,6 +229,7 @@ func (e *Engine) Group(path string, handlers ...HandlerFunc) *Group {
 }
 
 // SetErrorHandler sets custom error handler
+//
 // It takes a function that will be called whenever a handler returns an error
 // Example usage: app.SetErrorHandler(func(req *notnet.Request, res *notnet.Response, err error) { log.Printf("error: %v", err); res.JSON(500, map[string]string{"error": err.Error()}) })
 func (e *Engine) SetErrorHandler(f ErrorHandlerFunc) *Engine {
@@ -190,6 +238,7 @@ func (e *Engine) SetErrorHandler(f ErrorHandlerFunc) *Engine {
 }
 
 // SetNotFoundHandler sets custom 404 handler
+//
 // It takes a function that will be called whenever no route matches the incoming request
 // Example usage: app.SetNotFoundHandler(func(req *notnet.Request, res *notnet.Response) { res.JSON(404, map[string]string{"error": "endpoint not found", "path": req.Path()}) })
 func (e *Engine) SetNotFoundHandler(f NotFoundHandlerFunc) *Engine {
@@ -206,6 +255,7 @@ func (e *Engine) SetPanicHandler(f PanicHandlerFunc) *Engine {
 }
 
 // Listen starts the server on the given address
+//
 // It creates an http.Server with the configured timeouts and handlers, and starts listening for incoming requests
 // Example usage: app.Listen(":8080")
 // Note: For production use, consider using ListenTLS with proper TLS certificates
@@ -231,6 +281,7 @@ func (e *Engine) Listen(addr string) error {
 }
 
 // ListenTLS starts a TLS server
+//
 // It creates an http.Server with the configured timeouts and handlers, and starts listening for incoming requests over TLS
 // Example usage: app.ListenTLS(":8443", "cert.pem", "key.pem")
 // Note: certFile and keyFile should be valid TLS certificate and key files for the server to start successfully
@@ -252,6 +303,7 @@ func (e *Engine) ListenTLS(addr string, certFile, keyFile string) error {
 }
 
 // ListenListener uses a custom listener
+//
 // It allows users to create their own net.Listener (e.g. for Unix sockets or custom TCP listeners) and start the server with it
 // Example usage: listener, _ := net.Listen("tcp", ":8080"); app.ListenListener(listener)
 // Note: The provided listener should be properly configured and ready to accept connections for the server to start successfully
@@ -271,6 +323,7 @@ func (e *Engine) ListenListener(listener net.Listener) error {
 }
 
 // Shutdown gracefully shuts down the server
+//
 // It closes the server and releases any resources associated with it
 // Example usage: app.Shutdown()
 // Note: Shutdown will close the server and stop accepting new connections, but it does not wait for existing connections to finish. For a more graceful shutdown, consider implementing a context with timeout and using srv.Shutdown(ctx) instead.
@@ -432,4 +485,11 @@ func (g *Group) wrapHandler(handler HandlerFunc) HandlerFunc {
 
 		return err
 	}
+}
+
+// ApplyConfig applies configuration options to the engine from the group
+// Example usage: api.POST("/timeout", handler).ApplyConfig(&notnet.EngineOption{ReadTimeout: 10 * time.Second})
+func (g *Group) ApplyConfig(config *EngineOption) *Group {
+	g.engine.ApplyConfig(config)
+	return g
 }

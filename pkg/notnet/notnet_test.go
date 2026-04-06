@@ -2,6 +2,8 @@ package notnet
 
 import (
 	"fmt"
+	"net"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -417,5 +419,57 @@ func TestDefaultPanicHandler(t *testing.T) {
 
 	if w.Code != 500 {
 		t.Errorf("expected status 500, got %d", w.Code)
+	}
+}
+
+func TestApplyConfig(t *testing.T) {
+	engine := New(nil)
+
+	// Apply custom config to a route
+	engine.GET("/custom", func(req *Request, res *Response) error {
+		return res.String(200, "ok")
+	}).ApplyConfig(&EngineOption{
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 20 * time.Second,
+	})
+
+	// Verify that the route works
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/custom", nil)
+	engine.ServeHTTP(w, r)
+
+	if w.Code != 200 {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+}
+
+func TestApplyConfig_Fail(t *testing.T) {
+	engine := New(nil)
+
+	// Apply custom config to a route
+	engine.GET("/custom", func(req *Request, res *Response) error {
+		time.Sleep(50 * time.Millisecond) // Simulate a long processing time
+		return res.String(200, "ok")
+	}).ApplyConfig(&EngineOption{
+		ReadTimeout:  1 * time.Millisecond,
+		WriteTimeout: 10 * time.Millisecond,
+	})
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Failed to start listener: %v", err)
+	}
+
+	go engine.ListenListener(ln)
+	defer engine.Shutdown()
+
+	time.Sleep(10 * time.Millisecond) // Server startup wait
+
+	client := &http.Client{Timeout: 500 * time.Millisecond}
+	url := "http://" + ln.Addr().String() + "/custom"
+	resp, err := client.Get(url)
+	if err == nil {
+		defer resp.Body.Close()
+		t.Errorf("expected request to fail due to timeout, but got status %d", resp.StatusCode)
 	}
 }
