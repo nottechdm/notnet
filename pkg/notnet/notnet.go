@@ -69,7 +69,12 @@ type EngineOption struct {
 //
 // It takes an optional EngineOption struct to configure the engine's settings and handlers
 // If no options are provided, it uses default settings for timeouts and error handlers
-// Example usage: app := notnet.New(&notnet.EngineOption{ReadTimeout: 10 * time.Second, ErrorFunc: customErrorHandler})
+// Example usage:
+//   errHandler := notnet.ErrorHandlerFunc(customErrorHandler)
+//   app := notnet.New(&notnet.EngineOption{
+//       ReadTimeout: 10 * time.Second,
+//       ErrorFunc:   &errHandler,
+//   })
 func New(opts *EngineOption) *Engine {
 	e := &Engine{
 		router:         NewRouter(),
