@@ -2,13 +2,23 @@ package notnet
 
 import (
 	"strings"
+	"time"
 )
+
+// RouteConfig stores configuration specific to a route
+type RouteConfig struct {
+	ReadTimeout    time.Duration
+	WriteTimeout   time.Duration
+	IdleTimeout    time.Duration
+	MaxHeaderBytes int
+}
 
 // Route represents a registered route
 type Route struct {
 	Method  string
 	Path    string
 	Handler HandlerFunc
+	Config  *RouteConfig
 }
 
 // Router is the route matcher
@@ -20,6 +30,7 @@ type Router struct {
 type RadixNode struct {
 	edge       string
 	handler    HandlerFunc
+	config     *RouteConfig          // route-specific configuration
 	param      string                // parameter name if this is a param node
 	isParam    bool                  // true if this node represents a parameter
 	children   map[string]*RadixNode // exact match children
@@ -57,7 +68,7 @@ func (r *Router) Match(method, path string) (*Route, map[string]string, bool) {
 	// Exact lookup first for performance
 	key := method + ":" + path
 	if node, ok := r.tree[key]; ok && node.handler != nil {
-		return &Route{Method: method, Path: path, Handler: node.handler}, params, true
+		return &Route{Method: method, Path: path, Handler: node.handler, Config: node.config}, params, true
 	}
 
 	// Try to match with parameters
@@ -69,7 +80,7 @@ func (r *Router) Match(method, path string) (*Route, map[string]string, bool) {
 		if matched, p := matchPath(node.edge, path); matched {
 			params = p
 			if node.handler != nil {
-				return &Route{Method: method, Path: node.edge, Handler: node.handler}, params, true
+				return &Route{Method: method, Path: node.edge, Handler: node.handler, Config: node.config}, params, true
 			}
 		}
 	}
@@ -100,4 +111,12 @@ func matchPath(pattern, path string) (bool, map[string]string) {
 	}
 
 	return true, params
+}
+
+// SetRouteConfig sets the configuration for a specific route
+func (r *Router) SetRouteConfig(method, path string, config *RouteConfig) {
+	key := method + ":" + path
+	if node, ok := r.tree[key]; ok {
+		node.config = config
+	}
 }
