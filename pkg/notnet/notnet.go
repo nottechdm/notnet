@@ -43,6 +43,13 @@ type NotFoundHandlerFunc func(*Request, *Response)
 // PanicHandlerFunc is called when a panic occurs
 type PanicHandlerFunc func(*Request, *Response, interface{})
 
+// RouteBuilder represents a route registration that supports chaining and configuration
+type RouteBuilder struct {
+	engine *Engine
+	method string
+	path   string
+}
+
 // EngineOption defines options for creating a new Engine
 //
 // MaxHeaderBytes: maximum size of request headers (default 1MB)
@@ -70,11 +77,12 @@ type EngineOption struct {
 // It takes an optional EngineOption struct to configure the engine's settings and handlers
 // If no options are provided, it uses default settings for timeouts and error handlers
 // Example usage:
-//   errHandler := notnet.ErrorHandlerFunc(customErrorHandler)
-//   app := notnet.New(&notnet.EngineOption{
-//       ReadTimeout: 10 * time.Second,
-//       ErrorFunc:   &errHandler,
-//   })
+//
+//	errHandler := notnet.ErrorHandlerFunc(customErrorHandler)
+//	app := notnet.New(&notnet.EngineOption{
+//	    ReadTimeout: 10 * time.Second,
+//	    ErrorFunc:   &errHandler,
+//	})
 func New(opts *EngineOption) *Engine {
 	e := &Engine{
 		router:         NewRouter(),
@@ -130,63 +138,63 @@ func (e *Engine) Use(handlers ...HandlerFunc) *Engine {
 //
 // It takes a path and a handler function, and registers it with the router for the GET method
 // Example usage: app.GET("/ping", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "pong") })
-func (e *Engine) GET(path string, handler HandlerFunc) *Engine {
+func (e *Engine) GET(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("GET", path, handler)
-	return e
+	return &RouteBuilder{engine: e, method: "GET", path: path}
 }
 
 // POST registers a POST route
 //
 // It takes a path and a handler function, and registers it with the router for the POST method
 // Example usage: app.POST("/users", func(req *notnet.Request, res *notnet.Response) error { return res.String(201, "user created") })
-func (e *Engine) POST(path string, handler HandlerFunc) *Engine {
+func (e *Engine) POST(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("POST", path, handler)
-	return e
+	return &RouteBuilder{engine: e, method: "POST", path: path}
 }
 
 // PUT registers a PUT route
 //
 // It takes a path and a handler function, and registers it with the router for the PUT method
 // Example usage: app.PUT("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "user updated") })
-func (e *Engine) PUT(path string, handler HandlerFunc) *Engine {
+func (e *Engine) PUT(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("PUT", path, handler)
-	return e
+	return &RouteBuilder{engine: e, method: "PUT", path: path}
 }
 
 // DELETE registers a DELETE route
 //
 // It takes a path and a handler function, and registers it with the router for the DELETE method
 // Example usage: app.DELETE("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(204, "") })
-func (e *Engine) DELETE(path string, handler HandlerFunc) *Engine {
+func (e *Engine) DELETE(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("DELETE", path, handler)
-	return e
+	return &RouteBuilder{engine: e, method: "DELETE", path: path}
 }
 
 // PATCH registers a PATCH route
 //
 // It takes a path and a handler function, and registers it with the router for the PATCH method
 // Example usage: app.PATCH("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "user partially updated") })
-func (e *Engine) PATCH(path string, handler HandlerFunc) *Engine {
+func (e *Engine) PATCH(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("PATCH", path, handler)
-	return e
+	return &RouteBuilder{engine: e, method: "PATCH", path: path}
 }
 
 // OPTIONS registers an OPTIONS route
 //
 // It takes a path and a handler function, and registers it with the router for the OPTIONS method
 // Example usage: app.OPTIONS("/users", func(req *notnet.Request, res *notnet.Response) error { return res.String(204, "") })
-func (e *Engine) OPTIONS(path string, handler HandlerFunc) *Engine {
+func (e *Engine) OPTIONS(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("OPTIONS", path, handler)
-	return e
+	return &RouteBuilder{engine: e, method: "OPTIONS", path: path}
 }
 
 // HEAD registers a HEAD route
 //
 // It takes a path and a handler function, and registers it with the router for the HEAD method
 // Example usage: app.HEAD("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "") })
-func (e *Engine) HEAD(path string, handler HandlerFunc) *Engine {
+func (e *Engine) HEAD(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("HEAD", path, handler)
-	return e
+	return &RouteBuilder{engine: e, method: "HEAD", path: path}
 }
 
 // ApplyConfig applies configuration options to the engine.
@@ -222,6 +230,99 @@ func (e *Engine) ApplyConfig(config *EngineOption) *Engine {
 		}
 	}
 	return e
+}
+
+// RouteBuilder methods for chaining and route-specific configuration
+
+// ApplyConfig applies configuration options to the engine via a route registration call
+//
+// It takes an EngineOption struct and updates engine-wide configuration
+// This allows applying config after registering a route: app.GET("/path", handler).ApplyConfig(...)
+// Example usage: app.GET("/path", handler).ApplyConfig(&notnet.EngineOption{ReadTimeout: 10 * time.Second})
+func (rb *RouteBuilder) ApplyConfig(config *EngineOption) *RouteBuilder {
+	rb.engine.ApplyConfig(config)
+	// Also store route-specific config for future use if needed
+	if config != nil {
+		routeConfig := &RouteConfig{
+			ReadTimeout:    config.ReadTimeout,
+			WriteTimeout:   config.WriteTimeout,
+			IdleTimeout:    config.IdleTimeout,
+			MaxHeaderBytes: config.MaxHeaderBytes,
+		}
+		rb.engine.router.SetRouteConfig(rb.method, rb.path, routeConfig)
+	}
+	return rb
+}
+
+// GET registers a GET route and returns a RouteBuilder for chaining
+func (rb *RouteBuilder) GET(path string, handler HandlerFunc) *RouteBuilder {
+	rb.engine.router.Register("GET", path, handler)
+	return &RouteBuilder{engine: rb.engine, method: "GET", path: path}
+}
+
+// POST registers a POST route and returns a RouteBuilder for chaining
+func (rb *RouteBuilder) POST(path string, handler HandlerFunc) *RouteBuilder {
+	rb.engine.router.Register("POST", path, handler)
+	return &RouteBuilder{engine: rb.engine, method: "POST", path: path}
+}
+
+// PUT registers a PUT route and returns a RouteBuilder for chaining
+func (rb *RouteBuilder) PUT(path string, handler HandlerFunc) *RouteBuilder {
+	rb.engine.router.Register("PUT", path, handler)
+	return &RouteBuilder{engine: rb.engine, method: "PUT", path: path}
+}
+
+// DELETE registers a DELETE route and returns a RouteBuilder for chaining
+func (rb *RouteBuilder) DELETE(path string, handler HandlerFunc) *RouteBuilder {
+	rb.engine.router.Register("DELETE", path, handler)
+	return &RouteBuilder{engine: rb.engine, method: "DELETE", path: path}
+}
+
+// PATCH registers a PATCH route and returns a RouteBuilder for chaining
+func (rb *RouteBuilder) PATCH(path string, handler HandlerFunc) *RouteBuilder {
+	rb.engine.router.Register("PATCH", path, handler)
+	return &RouteBuilder{engine: rb.engine, method: "PATCH", path: path}
+}
+
+// OPTIONS registers an OPTIONS route and returns a RouteBuilder for chaining
+func (rb *RouteBuilder) OPTIONS(path string, handler HandlerFunc) *RouteBuilder {
+	rb.engine.router.Register("OPTIONS", path, handler)
+	return &RouteBuilder{engine: rb.engine, method: "OPTIONS", path: path}
+}
+
+// HEAD registers a HEAD route and returns a RouteBuilder for chaining
+func (rb *RouteBuilder) HEAD(path string, handler HandlerFunc) *RouteBuilder {
+	rb.engine.router.Register("HEAD", path, handler)
+	return &RouteBuilder{engine: rb.engine, method: "HEAD", path: path}
+}
+
+// Use adds global middleware to the engine and returns the Engine for chaining
+func (rb *RouteBuilder) Use(handlers ...HandlerFunc) *Engine {
+	rb.engine.Use(handlers...)
+	return rb.engine
+}
+
+// SetErrorHandler sets custom error handler on the engine and returns the Engine for chaining
+func (rb *RouteBuilder) SetErrorHandler(f ErrorHandlerFunc) *Engine {
+	rb.engine.SetErrorHandler(f)
+	return rb.engine
+}
+
+// SetNotFoundHandler sets custom 404 handler on the engine and returns the Engine for chaining
+func (rb *RouteBuilder) SetNotFoundHandler(f NotFoundHandlerFunc) *Engine {
+	rb.engine.SetNotFoundHandler(f)
+	return rb.engine
+}
+
+// SetPanicHandler sets custom panic handler on the engine and returns the Engine for chaining
+func (rb *RouteBuilder) SetPanicHandler(f PanicHandlerFunc) *Engine {
+	rb.engine.SetPanicHandler(f)
+	return rb.engine
+}
+
+// Group creates a route group with optional middleware and returns it
+func (rb *RouteBuilder) Group(path string, handlers ...HandlerFunc) *Group {
+	return rb.engine.Group(path, handlers...)
 }
 
 // Group creates a route group with optional middleware
@@ -341,6 +442,26 @@ func (e *Engine) Shutdown() error {
 		return e.srv.Close()
 	}
 	return nil
+}
+
+// GetReadTimeout returns the engine's read timeout
+func (e *Engine) GetReadTimeout() time.Duration {
+	return e.readTimeout
+}
+
+// GetWriteTimeout returns the engine's write timeout
+func (e *Engine) GetWriteTimeout() time.Duration {
+	return e.writeTimeout
+}
+
+// GetIdleTimeout returns the engine's idle timeout
+func (e *Engine) GetIdleTimeout() time.Duration {
+	return e.idleTimeout
+}
+
+// GetMaxHeaderBytes returns the engine's max header bytes setting
+func (e *Engine) GetMaxHeaderBytes() int {
+	return e.maxHeaderBytes
 }
 
 // ServeHTTP implements http.Handler
