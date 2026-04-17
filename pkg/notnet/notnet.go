@@ -140,6 +140,7 @@ func (e *Engine) Use(handlers ...HandlerFunc) *Engine {
 // Example usage: app.GET("/ping", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "pong") })
 func (e *Engine) GET(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("GET", path, handler)
+	GetStatsCollector().RegisterRoute("GET", path)
 	return &RouteBuilder{engine: e, method: "GET", path: path}
 }
 
@@ -149,6 +150,7 @@ func (e *Engine) GET(path string, handler HandlerFunc) *RouteBuilder {
 // Example usage: app.POST("/users", func(req *notnet.Request, res *notnet.Response) error { return res.String(201, "user created") })
 func (e *Engine) POST(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("POST", path, handler)
+	GetStatsCollector().RegisterRoute("POST", path)
 	return &RouteBuilder{engine: e, method: "POST", path: path}
 }
 
@@ -158,6 +160,7 @@ func (e *Engine) POST(path string, handler HandlerFunc) *RouteBuilder {
 // Example usage: app.PUT("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "user updated") })
 func (e *Engine) PUT(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("PUT", path, handler)
+	GetStatsCollector().RegisterRoute("PUT", path)
 	return &RouteBuilder{engine: e, method: "PUT", path: path}
 }
 
@@ -167,6 +170,7 @@ func (e *Engine) PUT(path string, handler HandlerFunc) *RouteBuilder {
 // Example usage: app.DELETE("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(204, "") })
 func (e *Engine) DELETE(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("DELETE", path, handler)
+	GetStatsCollector().RegisterRoute("DELETE", path)
 	return &RouteBuilder{engine: e, method: "DELETE", path: path}
 }
 
@@ -176,6 +180,7 @@ func (e *Engine) DELETE(path string, handler HandlerFunc) *RouteBuilder {
 // Example usage: app.PATCH("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "user partially updated") })
 func (e *Engine) PATCH(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("PATCH", path, handler)
+	GetStatsCollector().RegisterRoute("PATCH", path)
 	return &RouteBuilder{engine: e, method: "PATCH", path: path}
 }
 
@@ -185,6 +190,7 @@ func (e *Engine) PATCH(path string, handler HandlerFunc) *RouteBuilder {
 // Example usage: app.OPTIONS("/users", func(req *notnet.Request, res *notnet.Response) error { return res.String(204, "") })
 func (e *Engine) OPTIONS(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("OPTIONS", path, handler)
+	GetStatsCollector().RegisterRoute("OPTIONS", path)
 	return &RouteBuilder{engine: e, method: "OPTIONS", path: path}
 }
 
@@ -194,6 +200,7 @@ func (e *Engine) OPTIONS(path string, handler HandlerFunc) *RouteBuilder {
 // Example usage: app.HEAD("/users/1", func(req *notnet.Request, res *notnet.Response) error { return res.String(200, "") })
 func (e *Engine) HEAD(path string, handler HandlerFunc) *RouteBuilder {
 	e.router.Register("HEAD", path, handler)
+	GetStatsCollector().RegisterRoute("HEAD", path)
 	return &RouteBuilder{engine: e, method: "HEAD", path: path}
 }
 
@@ -256,44 +263,58 @@ func (rb *RouteBuilder) ApplyConfig(config *EngineOption) *RouteBuilder {
 
 // GET registers a GET route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) GET(path string, handler HandlerFunc) *RouteBuilder {
-	rb.engine.router.Register("GET", path, handler)
-	return &RouteBuilder{engine: rb.engine, method: "GET", path: path}
+	fullPath := rb.path + path // Assuming this is in a group context
+	rb.engine.router.Register("GET", fullPath, handler)
+	GetStatsCollector().RegisterRoute("GET", fullPath)
+	return &RouteBuilder{engine: rb.engine, method: "GET", path: fullPath}
 }
 
 // POST registers a POST route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) POST(path string, handler HandlerFunc) *RouteBuilder {
-	rb.engine.router.Register("POST", path, handler)
-	return &RouteBuilder{engine: rb.engine, method: "POST", path: path}
+	fullPath := rb.path + path
+	rb.engine.router.Register("POST", fullPath, handler)
+	GetStatsCollector().RegisterRoute("POST", fullPath)
+	return &RouteBuilder{engine: rb.engine, method: "POST", path: fullPath}
 }
 
 // PUT registers a PUT route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) PUT(path string, handler HandlerFunc) *RouteBuilder {
-	rb.engine.router.Register("PUT", path, handler)
-	return &RouteBuilder{engine: rb.engine, method: "PUT", path: path}
+	fullPath := rb.path + path
+	rb.engine.router.Register("PUT", fullPath, handler)
+	GetStatsCollector().RegisterRoute("PUT", fullPath)
+	return &RouteBuilder{engine: rb.engine, method: "PUT", path: fullPath}
 }
 
 // DELETE registers a DELETE route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) DELETE(path string, handler HandlerFunc) *RouteBuilder {
-	rb.engine.router.Register("DELETE", path, handler)
-	return &RouteBuilder{engine: rb.engine, method: "DELETE", path: path}
+	fullPath := rb.path + path
+	rb.engine.router.Register("DELETE", fullPath, handler)
+	GetStatsCollector().RegisterRoute("DELETE", fullPath)
+	return &RouteBuilder{engine: rb.engine, method: "DELETE", path: fullPath}
 }
 
 // PATCH registers a PATCH route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) PATCH(path string, handler HandlerFunc) *RouteBuilder {
-	rb.engine.router.Register("PATCH", path, handler)
-	return &RouteBuilder{engine: rb.engine, method: "PATCH", path: path}
+	fullPath := rb.path + path
+	rb.engine.router.Register("PATCH", fullPath, handler)
+	GetStatsCollector().RegisterRoute("PATCH", fullPath)
+	return &RouteBuilder{engine: rb.engine, method: "PATCH", path: fullPath}
 }
 
 // OPTIONS registers an OPTIONS route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) OPTIONS(path string, handler HandlerFunc) *RouteBuilder {
-	rb.engine.router.Register("OPTIONS", path, handler)
-	return &RouteBuilder{engine: rb.engine, method: "OPTIONS", path: path}
+	fullPath := rb.path + path
+	rb.engine.router.Register("OPTIONS", fullPath, handler)
+	GetStatsCollector().RegisterRoute("OPTIONS", fullPath)
+	return &RouteBuilder{engine: rb.engine, method: "OPTIONS", path: fullPath}
 }
 
 // HEAD registers a HEAD route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) HEAD(path string, handler HandlerFunc) *RouteBuilder {
-	rb.engine.router.Register("HEAD", path, handler)
-	return &RouteBuilder{engine: rb.engine, method: "HEAD", path: path}
+	fullPath := rb.path + path
+	rb.engine.router.Register("HEAD", fullPath, handler)
+	GetStatsCollector().RegisterRoute("HEAD", fullPath)
+	return &RouteBuilder{engine: rb.engine, method: "HEAD", path: fullPath}
 }
 
 // Use adds global middleware to the engine and returns the Engine for chaining
@@ -556,6 +577,7 @@ func (g *Group) GET(path string, handler HandlerFunc) *Group {
 	fullPath := g.prefix + path
 	wrappedHandler := g.wrapHandler(handler)
 	g.engine.router.Register("GET", fullPath, wrappedHandler)
+	GetStatsCollector().RegisterRoute("GET", fullPath)
 	return g
 }
 
@@ -564,6 +586,7 @@ func (g *Group) POST(path string, handler HandlerFunc) *Group {
 	fullPath := g.prefix + path
 	wrappedHandler := g.wrapHandler(handler)
 	g.engine.router.Register("POST", fullPath, wrappedHandler)
+	GetStatsCollector().RegisterRoute("POST", fullPath)
 	return g
 }
 
@@ -572,6 +595,7 @@ func (g *Group) PUT(path string, handler HandlerFunc) *Group {
 	fullPath := g.prefix + path
 	wrappedHandler := g.wrapHandler(handler)
 	g.engine.router.Register("PUT", fullPath, wrappedHandler)
+	GetStatsCollector().RegisterRoute("PUT", fullPath)
 	return g
 }
 
@@ -580,6 +604,7 @@ func (g *Group) DELETE(path string, handler HandlerFunc) *Group {
 	fullPath := g.prefix + path
 	wrappedHandler := g.wrapHandler(handler)
 	g.engine.router.Register("DELETE", fullPath, wrappedHandler)
+	GetStatsCollector().RegisterRoute("DELETE", fullPath)
 	return g
 }
 
@@ -588,6 +613,7 @@ func (g *Group) PATCH(path string, handler HandlerFunc) *Group {
 	fullPath := g.prefix + path
 	wrappedHandler := g.wrapHandler(handler)
 	g.engine.router.Register("PATCH", fullPath, wrappedHandler)
+	GetStatsCollector().RegisterRoute("PATCH", fullPath)
 	return g
 }
 

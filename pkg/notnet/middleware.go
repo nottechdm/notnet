@@ -157,3 +157,15 @@ func RequestID(headerName string) HandlerFunc {
 		return req.Next()
 	}
 }
+
+// Stats middleware collects request statistics for the dashboard
+func Stats() HandlerFunc {
+	return func(req *Request, res *Response) error {
+		start := time.Now()
+		err := req.Next()
+		elapsed := time.Since(start)
+		// Record the request in the stats collector
+		GetStatsCollector().RecordRequest(elapsed)
+		return err
+	}
+}

@@ -7,22 +7,26 @@ import (
 	"github.com/nottechdm/notnet/pkg/notnet"
 )
 
-func main() {
+func dashboard() {
 	app := notnet.New(nil)
+
+	// Initialize stats collector
+	notnet.InitStatsCollector()
 
 	// Global middleware
 	app.Use(notnet.Logger())
 	app.Use(notnet.Recovery())
 	app.Use(notnet.CORS(nil))
-	app.Use(notnet.Stats())
+	app.Use(notnet.Stats()) // Add Stats middleware to track all requests
 
+	// Serve the dashboard HTML
 	app.GET("/dashboard", notnet.Dashboard())
 
 	// API endpoint for dashboard data
 	app.GET("/api/stats", notnet.StatsAPI())
-	// Basic routes
+
 	app.GET("/", func(req *notnet.Request, res *notnet.Response) error {
-		return res.JSON(200, map[string]string{"message": "Hello from Apex!"})
+		return res.JSON(200, map[string]string{"message": "Welcome to NotNet with Stats Dashboard!"})
 	})
 
 	app.GET("/ping", func(req *notnet.Request, res *notnet.Response) error {
@@ -102,23 +106,23 @@ func main() {
 		return res.HTML(200, "<h1>Hello HTML</h1>")
 	})
 
-	// Custom error handling
-	app.SetErrorHandler(func(req *notnet.Request, res *notnet.Response, err error) {
-		fmt.Printf("Error occurred: %v\n", err)
-		res.JSON(500, map[string]string{"error": err.Error()})
-	})
-
-	// Custom 404
-	app.SetNotFoundHandler(func(req *notnet.Request, res *notnet.Response) {
-		res.JSON(404, map[string]string{
-			"error": "endpoint not found",
-			"path":  req.Path(),
-		})
+	// Delayed response to see slow requests
+	app.GET("/slow", func(req *notnet.Request, res *notnet.Response) error {
+		// Simulate slow processing
+		return res.JSON(200, map[string]string{"status": "completed"})
 	})
 
 	// Start server
-	log.Println("NotNet server starting on http://localhost:8080")
-	if err := app.Listen(":8080"); err != nil {
-		log.Fatalf("Server error: %v", err)
+	addr := ":8080"
+	fmt.Printf("\n╔════════════════════════════════════════════════════════╗\n")
+	fmt.Printf("║     NotNet Server with Stats Dashboard               ║\n")
+	fmt.Printf("╠════════════════════════════════════════════════════════╣\n")
+	fmt.Printf("║    Server running on http://localhost:8080          ║\n")
+	fmt.Printf("║    Dashboard: http://localhost:8080/dashboard       ║\n")
+	fmt.Printf("║    API Stats: http://localhost:8080/api/stats       ║\n")
+	fmt.Printf("╚════════════════════════════════════════════════════════╝\n\n")
+
+	if err := app.Listen(addr); err != nil {
+		log.Fatal(err)
 	}
 }
