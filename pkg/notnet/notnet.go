@@ -263,58 +263,51 @@ func (rb *RouteBuilder) ApplyConfig(config *EngineOption) *RouteBuilder {
 
 // GET registers a GET route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) GET(path string, handler HandlerFunc) *RouteBuilder {
-	fullPath := rb.path + path // Assuming this is in a group context
-	rb.engine.router.Register("GET", fullPath, handler)
-	GetStatsCollector().RegisterRoute("GET", fullPath)
-	return &RouteBuilder{engine: rb.engine, method: "GET", path: fullPath}
+	rb.engine.router.Register("GET", path, handler)
+	GetStatsCollector().RegisterRoute("GET", path)
+	return &RouteBuilder{engine: rb.engine, method: "GET", path: path}
 }
 
 // POST registers a POST route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) POST(path string, handler HandlerFunc) *RouteBuilder {
-	fullPath := rb.path + path
-	rb.engine.router.Register("POST", fullPath, handler)
-	GetStatsCollector().RegisterRoute("POST", fullPath)
-	return &RouteBuilder{engine: rb.engine, method: "POST", path: fullPath}
+	rb.engine.router.Register("POST", path, handler)
+	GetStatsCollector().RegisterRoute("POST", path)
+	return &RouteBuilder{engine: rb.engine, method: "POST", path: path}
 }
 
 // PUT registers a PUT route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) PUT(path string, handler HandlerFunc) *RouteBuilder {
-	fullPath := rb.path + path
-	rb.engine.router.Register("PUT", fullPath, handler)
-	GetStatsCollector().RegisterRoute("PUT", fullPath)
-	return &RouteBuilder{engine: rb.engine, method: "PUT", path: fullPath}
+	rb.engine.router.Register("PUT", path, handler)
+	GetStatsCollector().RegisterRoute("PUT", path)
+	return &RouteBuilder{engine: rb.engine, method: "PUT", path: path}
 }
 
 // DELETE registers a DELETE route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) DELETE(path string, handler HandlerFunc) *RouteBuilder {
-	fullPath := rb.path + path
-	rb.engine.router.Register("DELETE", fullPath, handler)
-	GetStatsCollector().RegisterRoute("DELETE", fullPath)
-	return &RouteBuilder{engine: rb.engine, method: "DELETE", path: fullPath}
+	rb.engine.router.Register("DELETE", path, handler)
+	GetStatsCollector().RegisterRoute("DELETE", path)
+	return &RouteBuilder{engine: rb.engine, method: "DELETE", path: path}
 }
 
 // PATCH registers a PATCH route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) PATCH(path string, handler HandlerFunc) *RouteBuilder {
-	fullPath := rb.path + path
-	rb.engine.router.Register("PATCH", fullPath, handler)
-	GetStatsCollector().RegisterRoute("PATCH", fullPath)
-	return &RouteBuilder{engine: rb.engine, method: "PATCH", path: fullPath}
+	rb.engine.router.Register("PATCH", path, handler)
+	GetStatsCollector().RegisterRoute("PATCH", path)
+	return &RouteBuilder{engine: rb.engine, method: "PATCH", path: path}
 }
 
 // OPTIONS registers an OPTIONS route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) OPTIONS(path string, handler HandlerFunc) *RouteBuilder {
-	fullPath := rb.path + path
-	rb.engine.router.Register("OPTIONS", fullPath, handler)
-	GetStatsCollector().RegisterRoute("OPTIONS", fullPath)
-	return &RouteBuilder{engine: rb.engine, method: "OPTIONS", path: fullPath}
+	rb.engine.router.Register("OPTIONS", path, handler)
+	GetStatsCollector().RegisterRoute("OPTIONS", path)
+	return &RouteBuilder{engine: rb.engine, method: "OPTIONS", path: path}
 }
 
 // HEAD registers a HEAD route and returns a RouteBuilder for chaining
 func (rb *RouteBuilder) HEAD(path string, handler HandlerFunc) *RouteBuilder {
-	fullPath := rb.path + path
-	rb.engine.router.Register("HEAD", fullPath, handler)
-	GetStatsCollector().RegisterRoute("HEAD", fullPath)
-	return &RouteBuilder{engine: rb.engine, method: "HEAD", path: fullPath}
+	rb.engine.router.Register("HEAD", path, handler)
+	GetStatsCollector().RegisterRoute("HEAD", path)
+	return &RouteBuilder{engine: rb.engine, method: "HEAD", path: path}
 }
 
 // Use adds global middleware to the engine and returns the Engine for chaining
