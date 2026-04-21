@@ -28,3 +28,9 @@ jobs:
 
     - name: Display coverage report
       run: go tool cover -func=coverage.out
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        slug: nottechdm/notnet
