@@ -2,6 +2,8 @@ package notnet
 
 import (
 	"fmt"
+	"net"
+	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -488,5 +490,149 @@ func TestApplyConfig_NilIsNoOp(t *testing.T) {
 
 	if engine.readTimeout != before {
 		t.Errorf("expected readTimeout to remain %v after nil ApplyConfig, got %v", before, engine.readTimeout)
+	}
+}
+
+func TestRouteBuilderMethods(t *testing.T) {
+	engine := New(nil)
+	rb := engine.GET("/get", func(req *Request, res *Response) error { return nil })
+
+	// Test RouteBuilder chaining and HTTP methods
+	rb.POST("/post", func(req *Request, res *Response) error { return nil }).
+		PUT("/put", func(req *Request, res *Response) error { return nil }).
+		DELETE("/delete", func(req *Request, res *Response) error { return nil }).
+		PATCH("/patch", func(req *Request, res *Response) error { return nil }).
+		OPTIONS("/options", func(req *Request, res *Response) error { return nil }).
+		HEAD("/head", func(req *Request, res *Response) error { return nil }).
+		Use(func(req *Request, res *Response) error { return req.Next() }).
+		SetErrorHandler(func(req *Request, res *Response, err error) {}).
+		SetNotFoundHandler(func(req *Request, res *Response) {}).
+		SetPanicHandler(func(req *Request, res *Response, rec interface{}) {})
+
+	// Verify routes are registered
+	methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"}
+	paths := []string{"/get", "/post", "/put", "/delete", "/patch", "/options", "/head"}
+
+	for i, method := range methods {
+		_, _, found := engine.router.Match(method, paths[i])
+		if !found {
+			t.Errorf("expected route %s %s to be registered", method, paths[i])
+		}
+	}
+}
+
+func TestEngineGetters(t *testing.T) {
+	opts := &EngineOption{
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   20 * time.Second,
+		IdleTimeout:    30 * time.Second,
+		MaxHeaderBytes: 4096,
+	}
+	engine := New(opts)
+
+	if engine.GetReadTimeout() != opts.ReadTimeout {
+		t.Errorf("expected %v, got %v", opts.ReadTimeout, engine.GetReadTimeout())
+	}
+	if engine.GetWriteTimeout() != opts.WriteTimeout {
+		t.Errorf("expected %v, got %v", opts.WriteTimeout, engine.GetWriteTimeout())
+	}
+	if engine.GetIdleTimeout() != opts.IdleTimeout {
+		t.Errorf("expected %v, got %v", opts.IdleTimeout, engine.GetIdleTimeout())
+	}
+	if engine.GetMaxHeaderBytes() != opts.MaxHeaderBytes {
+		t.Errorf("expected %d, got %d", opts.MaxHeaderBytes, engine.GetMaxHeaderBytes())
+	}
+}
+
+func TestRouteBuilderApplyConfig(t *testing.T) {
+	engine := New(nil)
+	rb := engine.GET("/test", func(req *Request, res *Response) error { return nil })
+	
+	rb.ApplyConfig(&EngineOption{
+		ReadTimeout: 12 * time.Second,
+	})
+
+	if engine.readTimeout != 12*time.Second {
+		t.Errorf("expected engine readTimeout 12s, got %v", engine.readTimeout)
+	}
+}
+
+func TestGroupApplyConfig(t *testing.T) {
+	engine := New(nil)
+	group := engine.Group("/api")
+	
+	group.ApplyConfig(&EngineOption{
+		WriteTimeout: 14 * time.Second,
+	})
+
+	if engine.writeTimeout != 14*time.Second {
+		t.Errorf("expected engine writeTimeout 14s, got %v", engine.writeTimeout)
+	}
+}
+
+func TestRouteBuilderGroup(t *testing.T) {
+	engine := New(nil)
+	rb := engine.GET("/test", func(req *Request, res *Response) error { return nil })
+	
+	group := rb.Group("/v1")
+	if group.prefix != "/v1" {
+		t.Errorf("expected group prefix /v1, got %s", group.prefix)
+	}
+}
+
+func TestListenListener(t *testing.T) {
+	engine := New(nil)
+	engine.GET("/ping", func(req *Request, res *Response) error {
+		return res.String(200, "pong")
+	})
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("failed to create listener: %v", err)
+	}
+	
+	go func() {
+		_ = engine.ListenListener(ln)
+	}()
+
+	// Wait a bit for server to start
+	time.Sleep(100 * time.Millisecond)
+
+	resp, err := http.Get("http://" + ln.Addr().String() + "/ping")
+	if err != nil {
+		t.Fatalf("failed to GET: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		t.Errorf("expected status 200, got %d", resp.StatusCode)
+	}
+	
+	_ = engine.Shutdown()
+}
+
+func TestRouteBuilderSetHandlers(t *testing.T) {
+	engine := New(nil)
+	rb := engine.GET("/test", func(req *Request, res *Response) error { return nil })
+	
+	rb.SetNotFoundHandler(func(req *Request, res *Response) {})
+	rb.SetPanicHandler(func(req *Request, res *Response, rec interface{}) {})
+}
+
+func TestListenError(t *testing.T) {
+	engine := New(nil)
+	// Invalid address
+	err := engine.Listen("invalid")
+	if err == nil {
+		t.Error("expected error for invalid address")
+	}
+}
+
+func TestListenTLSError(t *testing.T) {
+	engine := New(nil)
+	// Invalid certs
+	err := engine.ListenTLS(":0", "nonexistent", "nonexistent")
+	if err == nil {
+		t.Error("expected error for nonexistent certs")
 	}
 }

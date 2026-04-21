@@ -532,3 +532,31 @@ func TestMiddlewareErrorHandling(t *testing.T) {
 		t.Errorf("expected status 500, got %d", w.Code)
 	}
 }
+
+func TestStatsMiddleware(t *testing.T) {
+	stats := Stats()
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/test", nil)
+	req, res := AcquireRequestResponse(w, r)
+	defer ReleaseRequestResponse(req, res)
+
+	sc := GetStatsCollector()
+	initialCount := sc.GetStats().RequestCount
+
+	req.index = -1
+	req.handlers = []HandlerFunc{
+		func(req *Request, res *Response) error {
+			return res.String(200, "ok")
+		},
+	}
+
+	err := stats(req, res)
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	finalCount := sc.GetStats().RequestCount
+	if finalCount != initialCount+1 {
+		t.Errorf("expected request count to increase from %d to %d, got %d", initialCount, initialCount+1, finalCount)
+	}
+}

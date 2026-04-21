@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -579,5 +580,35 @@ func TestEmptyResponse(t *testing.T) {
 
 	if w.Body.String() != "" {
 		t.Error("expected empty body")
+	}
+}
+
+func TestResponseFile(t *testing.T) {
+	// Create a temporary file
+	content := "hello from file"
+	tmpfile, err := os.CreateTemp("", "testfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+
+	if _, err := tmpfile.Write([]byte(content)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tmpfile.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/test", nil)
+	_, res := AcquireRequestResponse(w, r)
+
+	err = res.File(tmpfile.Name())
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+
+	if w.Body.String() != content {
+		t.Errorf("expected body %s, got %s", content, w.Body.String())
 	}
 }
