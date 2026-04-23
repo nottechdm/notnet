@@ -11,8 +11,7 @@ A lightweight HTTP router written in Go.
 
 **NotNet** is a lightweight, high-performance, and ergonomic routing framework for Go. It allows you to quickly structure RESTful HTTP services with an expressive API, built-in middleware, and custom group routing.
 
-<img width="1983" height="793" alt="ChatGPT Image Apr 23, 2026, 08_44_43 PM" src="https://github.com/user-attachments/assets/ffdcf831-d06e-43ff-81f1-b0f106d82e4f" />
-
+<img width="1983" height="793" alt="ChatGPT Image Apr 23, 2026, 08_48_29 PM" src="https://github.com/user-attachments/assets/eb322108-7238-4484-896f-1dbaaeab1551" />
 
 ## Features
 
