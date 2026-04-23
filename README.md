@@ -5,7 +5,8 @@ A lightweight HTTP router written in Go.
 ![Go Version](https://img.shields.io/badge/go-1.25+-blue.svg)
 [![GoDoc](https://pkg.go.dev/badge/github.com/nottechdm/notnet.svg)](https://pkg.go.dev/github.com/nottechdm/notnet)
 ![Tests](https://github.com/nottechdm/notnet/actions/workflows/test.yml/badge.svg)
-![Coverage](https://img.shields.io/badge/coverage-94%25-brightgreen)
+[![Go Report Card](https://goreportcard.com/badge/github.com/nottechdm/notnet)](https://goreportcard.com/report/github.com/nottechdm/notnet)
+[![codecov](https://codecov.io/gh/nottechdm/notnet/branch/main/graph/badge.svg)](https://codecov.io/gh/nottechdm/notnet)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 **NotNet** is a lightweight, high-performance, and ergonomic routing framework for Go. It allows you to quickly structure RESTful HTTP services with an expressive API, built-in middleware, and custom group routing. 
