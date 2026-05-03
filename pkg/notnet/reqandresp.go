@@ -2,6 +2,7 @@ package notnet
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sync"
@@ -142,6 +143,56 @@ func (r *Request) Header(key string) string {
 func (r *Response) SetHeader(key, value string) *Response {
 	r.Writer.Header().Set(key, value)
 	return r
+}
+
+// SSE sets up the response for Server-Sent Events
+//
+// It sets the Content-Type to text/event-stream and other necessary headers for SSE, and flushes the initial headers to the client
+func (r *Response) SSE() *Response {
+	r.Writer.Header().Set("Content-Type", "text/event-stream")
+	r.Writer.Header().Set("Cache-Control", "no-cache")
+	r.Writer.Header().Set("Connection", "keep-alive")
+	r.Writer.Header().Set("Transfer-Encoding", "chunked")
+	r.Writer.WriteHeader(http.StatusOK)
+	if f, ok := r.Writer.(http.Flusher); ok {
+		f.Flush()
+	}
+	return r
+}
+
+// SendEvent sends a server-sent event to the client
+//
+// It formats the data according to the SSE protocol (event: <name>\ndata: <data>\n\n).
+// If data is not a string or byte slice, it will be encoded as JSON. It also flushes the event to the client immediately.
+func (r *Response) SendEvent(event string, data interface{}) error {
+	if event != "" {
+		if _, err := fmt.Fprintf(r.Writer, "event: %s\n", event); err != nil {
+			return err
+		}
+	}
+
+	var d []byte
+	var err error
+	switch v := data.(type) {
+	case string:
+		d = []byte(v)
+	case []byte:
+		d = v
+	default:
+		d, err = json.Marshal(data)
+		if err != nil {
+			return err
+		}
+	}
+
+	if _, err := fmt.Fprintf(r.Writer, "data: %s\n\n", string(d)); err != nil {
+		return err
+	}
+
+	if f, ok := r.Writer.(http.Flusher); ok {
+		f.Flush()
+	}
+	return nil
 }
 
 // Method returns the HTTP method

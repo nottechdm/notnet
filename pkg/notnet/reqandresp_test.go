@@ -612,3 +612,72 @@ func TestResponseFile(t *testing.T) {
 		t.Errorf("expected body %s, got %s", content, w.Body.String())
 	}
 }
+
+func TestResponseSSE(t *testing.T) {
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/test", nil)
+	_, res := AcquireRequestResponse(w, r)
+
+	res.SSE()
+
+	if w.Code != 200 {
+		t.Errorf("expected status 200, got %d", w.Code)
+	}
+
+	if w.Header().Get("Content-Type") != "text/event-stream" {
+		t.Errorf("expected text/event-stream, got %s", w.Header().Get("Content-Type"))
+	}
+
+	if w.Header().Get("Cache-Control") != "no-cache" {
+		t.Errorf("expected no-cache, got %s", w.Header().Get("Cache-Control"))
+	}
+
+	if w.Header().Get("Connection") != "keep-alive" {
+		t.Errorf("expected keep-alive, got %s", w.Header().Get("Connection"))
+	}
+}
+
+func TestResponseSendEvent(t *testing.T) {
+	tests := []struct {
+		name     string
+		event    string
+		data     interface{}
+		expected string
+	}{
+		{
+			name:     "string data",
+			event:    "message",
+			data:     "hello",
+			expected: "event: message\ndata: hello\n\n",
+		},
+		{
+			name:     "json data",
+			event:    "update",
+			data:     map[string]interface{}{"id": 1, "msg": "test"},
+			expected: "event: update\ndata: {\"id\":1,\"msg\":\"test\"}\n\n",
+		},
+		{
+			name:     "no event name",
+			event:    "",
+			data:     "anonymous",
+			expected: "data: anonymous\n\n",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", "/test", nil)
+			_, res := AcquireRequestResponse(w, r)
+
+			err := res.SendEvent(tt.event, tt.data)
+			if err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+
+			if w.Body.String() != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, w.Body.String())
+			}
+		})
+	}
+}
