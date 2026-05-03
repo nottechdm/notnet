@@ -26,6 +26,7 @@ A lightweight HTTP router written in Go.
   - `AuthRequired`: Simple stubbed bearer token checking.
   - `RequestID`: Track requests universally with trace IDs.
 - **Extensible Request/Response Engine**: Bind JSON payloads quickly, return robust JSON, HTML or strings using dedicated `Response/Request` wrappers.
+- **Server-Sent Events (SSE)**: Built-in support for streaming real-time updates to clients with `res.SSE()` and `res.SendEvent()`.
 
 ## Installation
 
@@ -109,6 +110,31 @@ app.SetNotFoundHandler(func(req *notnet.Request, res *notnet.Response) {
         "error": "This page does not exist",
         "path":  req.Path(),
     })
+})
+```
+
+## Server-Sent Events (SSE)
+
+NotNet provides native support for Server-Sent Events, allowing you to stream real-time updates to your clients effortlessly:
+
+```go
+app.GET("/events", func(req *notnet.Request, res *notnet.Response) error {
+    // Set up the SSE connection (sets headers and flushes)
+    res.SSE()
+
+    ticker := time.NewTicker(1 * time.Second)
+    defer ticker.Stop()
+
+    for i := 0; i < 5; i++ {
+        <-ticker.C
+        // Send a named event with data (can be string, []byte, or any JSON-marshalable object)
+        res.SendEvent("message", map[string]interface{}{
+            "id":   i,
+            "text": "Hello from NotNet!",
+        })
+    }
+
+    return nil
 })
 ```
 
