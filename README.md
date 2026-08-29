@@ -100,6 +100,46 @@ api.GET("/dashboard", func(req *notnet.Request, res *notnet.Response) error {
 })
 ```
 
+## Custom Middleware
+
+You can create your own middleware by returning a `notnet.HandlerFunc`. The function receives the request and response, can run logic before or after calling `req.Next()`, and can stop the chain by returning an error or writing a response directly.
+
+```go
+func CustomLogger() notnet.HandlerFunc {
+    return func(req *notnet.Request, res *notnet.Response) error {
+        start := time.Now()
+        err := req.Next()
+
+        log.Printf("[%s] %s %s - %s",
+            req.Method(),
+            req.Path(),
+            req.RemoteAddr(),
+            time.Since(start),
+        )
+
+        return err
+    }
+}
+
+app.Use(CustomLogger())
+```
+
+A common pattern is to validate headers, attach request metadata, or log timing for each request before continuing to the next handler:
+
+```go
+func RequireAPIKey() notnet.HandlerFunc {
+    return func(req *notnet.Request, res *notnet.Response) error {
+        if req.Header("X-API-Key") == "" {
+            return res.JSON(401, map[string]string{"error": "missing api key"})
+        }
+
+        return req.Next()
+    }
+}
+
+app.Use(RequireAPIKey())
+```
+
 ## Custom Handlers
 
 `NotNet` comes with default 404, error, and panic handling, but you can override them with your unique application responses at any time:
