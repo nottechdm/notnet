@@ -3,14 +3,30 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/nottechdm/notnet/pkg/notnet"
 )
+
+func customLogger() notnet.HandlerFunc {
+	return func(req *notnet.Request, res *notnet.Response) error {
+		start := time.Now()
+		err := req.Next()
+		log.Printf("[%s] %s %s - %s",
+			req.Method(),
+			req.Path(),
+			req.RemoteAddr(),
+			time.Since(start),
+		)
+		return err
+	}
+}
 
 func main() {
 	app := notnet.New(nil)
 
 	// Global middleware
+	app.Use(customLogger())
 	app.Use(notnet.Logger())
 	app.Use(notnet.Recovery())
 	app.Use(notnet.CORS(nil))
